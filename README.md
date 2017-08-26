@@ -1,6 +1,6 @@
 # shadowsocks-naive
 
-**This project is under heavy development, so do not use it unless your are a developer and familiar with python**
+**This project is under heavy development, so do not use it unless your are a developer and familiar with Python.**
 
 ## Development Status
 |Step|Goal|Status|
