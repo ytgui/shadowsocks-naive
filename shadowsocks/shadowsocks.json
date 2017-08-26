@@ -1,0 +1,8 @@
+{
+    "local_address":"0.0.0.0",
+    "port_password":
+    {
+        "8848":"123456"
+    },
+    "method":"aes-256-cfb"
+}

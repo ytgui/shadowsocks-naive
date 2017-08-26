@@ -1,2 +1,2 @@
 # shadowsocks-naive
-A young  implement of shadowsocks, try to make everything simple.
+A young shadowsocks implement in Python, try to make everything simple
