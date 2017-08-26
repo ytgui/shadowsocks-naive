@@ -12,6 +12,7 @@
 |5|Exception handles|20%|
 |6|Multi-process or fork() support|0%|
 |7|Aead ciphers support|0%|
+|8|client implement|0%|
 
 ## 1. Install
 
