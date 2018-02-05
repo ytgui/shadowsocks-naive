@@ -44,13 +44,14 @@ class ClientHandler(TimeoutHandler, ClientProtocol):
 
     def server_data_received(self, recv_buffer):
         backup = recv_buffer
+        logging.warning('enter')
         while len(recv_buffer) >= 10:
             (instance_id, len_payload), recv_buffer = struct.unpack('=QH', recv_buffer[:10]), recv_buffer[10:]
             if len(recv_buffer) < len_payload:
                 logging.warning('len(recv_buffer) < len_payload')
                 return
             if len_payload == 0:
-                pass
+                continue
             payload, recv_buffer = recv_buffer[:len_payload], recv_buffer[len_payload:]
             #
             if instance_id in self._table:
@@ -61,6 +62,7 @@ class ClientHandler(TimeoutHandler, ClientProtocol):
         else:
             if len(recv_buffer) != 0:
                 logging.warning('unexpected length of recv_buffer')
+        logging.warning('leave')
 
     def server_connection_lost(self, exc):
         raise NotImplementedError

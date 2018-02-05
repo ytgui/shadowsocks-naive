@@ -85,8 +85,7 @@ class ServerProtocol(asyncio.Protocol):
         self.client_connection_made(transport)
 
     def data_received(self, data):
-        coro = self.client_data_received(data)
-        asyncio.ensure_future(coro)
+        self.client_data_received(data)
 
     def connection_lost(self, exc):
         self.client_connection_lost(exc)
@@ -94,7 +93,7 @@ class ServerProtocol(asyncio.Protocol):
     def client_connection_made(self, transport):
         raise NotImplementedError
 
-    async def client_data_received(self, data):
+    def client_data_received(self, data):
         raise NotImplementedError
 
     def client_connection_lost(self, exc):
