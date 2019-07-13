@@ -31,7 +31,9 @@ class MRU:
 
 
 class ClientProtocol(BaseProtocol):
-    # id_4, size_4, data, size_1, padding
+    # connection_id, len_payload, payload
+    HEADER_LEN = 8
+    MIN_BUFSIZE = HEADER_LEN
 
     def __init__(self):
         BaseProtocol.__init__(self, [self.client_connection_made,
@@ -51,17 +53,13 @@ class ClientProtocol(BaseProtocol):
     
     def client_data_received(self, data):
         self._recv_buffer += data
-        while len(self._recv_buffer) >= 8:
+        while len(self._recv_buffer) >= self.MIN_BUFSIZE:
             # unpack payload
-            connection_id, len_payload = struct.unpack('!II', self._recv_buffer[:8])
-            if len(self._recv_buffer) < (8 + len_payload + 1):
+            connection_id, len_payload = struct.unpack('!II', self._recv_buffer[:self.HEADER_LEN])
+            if len(self._recv_buffer) < (self.HEADER_LEN + len_payload):
                 break
-            payload = self._recv_buffer[8:8 + len_payload]
-            # check padding
-            len_padding = self._recv_buffer[8 + len_payload]
-            if len(self._recv_buffer) < (8 + len_payload + 1 + len_padding):
-                break
-            self._recv_buffer = self._recv_buffer[8 + len_payload + 1 + len_padding:]
+            payload = self._recv_buffer[self.HEADER_LEN:self.HEADER_LEN + len_payload]
+            self._recv_buffer = self._recv_buffer[self.HEADER_LEN + len_payload:]
             # handle connection closed
             if connection_id not in self._table:
                 return
@@ -91,8 +89,6 @@ class ClientProtocol(BaseProtocol):
     
     def local_data_received(self, connection_id, send_buffer):
         send_buffer = struct.pack('!II', connection_id, len(send_buffer)) + send_buffer
-        size_padding = random.randrange(0x20)
-        send_buffer += struct.pack('!B', size_padding) + os.urandom(size_padding)
         self.write(send_buffer)
     
     def local_connection_lost(self, connection_id):
@@ -100,8 +96,7 @@ class ClientProtocol(BaseProtocol):
             return
         del self._table[connection_id]
         # send close notice
-        size_padding = random.randrange(0x20)
-        send_buffer = struct.pack('!IIB', connection_id, 0, size_padding) + os.urandom(size_padding)
+        send_buffer = struct.pack('!II', connection_id, 0)
         self.write(send_buffer)
 
 

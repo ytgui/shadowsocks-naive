@@ -32,7 +32,9 @@ class RemoteTCP(BaseProtocol):
 
 
 class ServerProtocol(BaseProtocol):
-    # id_4, size_4, data, size_1, padding
+    # connection_id, len_payload, payload
+    HEADER_LEN = 8
+    MIN_BUFSIZE = HEADER_LEN
 
     def __init__(self, loop=None):
         BaseProtocol.__init__(self, [self.server_connection_made,
@@ -49,17 +51,13 @@ class ServerProtocol(BaseProtocol):
     def server_data_received(self, data):
         # unpack data
         self._recv_buffer += data
-        while len(self._recv_buffer) >= 8:
+        while len(self._recv_buffer) >= self.MIN_BUFSIZE:
             # unpack payload
-            connection_id, len_payload = struct.unpack('!II', self._recv_buffer[:8])
-            if len(self._recv_buffer) < (8 + len_payload + 1):
+            connection_id, len_payload = struct.unpack('!II', self._recv_buffer[:self.HEADER_LEN])
+            if len(self._recv_buffer) < (self.HEADER_LEN + len_payload):
                 break
-            payload = self._recv_buffer[8:8 + len_payload]
-            # check padding
-            len_padding = self._recv_buffer[8 + len_payload]
-            if len(self._recv_buffer) < (8 + len_payload + 1 + len_padding):
-                break
-            self._recv_buffer = self._recv_buffer[8 + len_payload + 1 + len_padding:]
+            payload = self._recv_buffer[self.HEADER_LEN:self.HEADER_LEN + len_payload]
+            self._recv_buffer = self._recv_buffer[self.HEADER_LEN + len_payload:]
             # handle payload
             if connection_id in self._table:
                 # existing connection
@@ -94,8 +92,6 @@ class ServerProtocol(BaseProtocol):
                 rep, atype, bind_addr, bind_port = 0, 1, 0, 0
             finally:
                 send_buffer = struct.pack('!IIBBBBIH', connection_id, 10, ver, rep, rsv, atype, bind_addr, bind_port)
-                size_padding = random.randrange(0x20)
-                send_buffer += struct.pack('!B', size_padding) + os.urandom(size_padding)
                 self.write(send_buffer)
         else:
             logging.debug('unexpected data, maybe remote closed before local, instance_id: {0}, recv_buffer: {1}'.format(connection_id, payload))
@@ -110,8 +106,6 @@ class ServerProtocol(BaseProtocol):
     
     def remote_data_received(self, connection_id, data):
         send_buffer = struct.pack('!II', connection_id, len(data)) + data
-        size_padding = random.randrange(0x20)
-        send_buffer += struct.pack('!B', size_padding) + os.urandom(size_padding)
         self.write(send_buffer)
     
     def remote_connection_lost(self, connection_id):
@@ -119,8 +113,7 @@ class ServerProtocol(BaseProtocol):
             return
         del self._table[connection_id]
         # send close notice
-        size_padding = random.randrange(0x20)
-        send_buffer = struct.pack('!IIB', connection_id, 0, size_padding) + os.urandom(size_padding)
+        send_buffer = struct.pack('!II', connection_id, 0)
         self.write(send_buffer)
 
 
